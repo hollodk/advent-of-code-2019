@@ -1,5 +1,6 @@
 <?php
 
+$file = file_get_contents(__DIR__.'/input.txt');
 $file = file_get_contents(__DIR__.'/input-6.0.txt');
 
 $list = preg_split("/\n/", $file);
@@ -21,11 +22,42 @@ foreach ($list as $o) {
 $n = 0;
 foreach ($nest->res as $search=>$data) {
     $nest->found = false;
+
     $nest->fix($nest->res, $search, $data, $n);
 }
 
 var_dump($nest->res);
-var_dump($nest->count());
+
+$san = $nest->find('SAN');
+$you = $nest->find('YOU');
+
+$intersect = array_intersect($san, $you);
+
+array_pop($san);
+array_pop($you);
+array_pop($you);
+
+var_dump('steps san '.count($san));
+var_dump('steps you '.count($you));
+
+$last = array_pop($intersect);
+
+foreach ($san as $key=>$value) {
+    unset($san[$key]);
+    if ($value == $last) break;
+}
+
+foreach ($you as $key=>$value) {
+    if ($value == $last) break;
+    unset($you[$key]);
+}
+
+var_dump($last, $san, $you);
+
+var_dump('steps san '.count($san));
+var_dump('steps you '.count($you));
+
+var_dump(count($san)+count($you));
 
 class nest
 {
@@ -33,10 +65,39 @@ class nest
     public $unordered;
     public $found;
     public $total;
+    public $trip = null;
 
     public function __construct()
     {
         $this->res = new \StdClass();
+    }
+
+    public function find($search)
+    {
+        $trip = [];
+        $this->trip = null;
+
+        $this->walk($this->res, $search, $trip);
+
+        return $this->trip;
+    }
+
+    public function walk($loop, $search, $trip)
+    {
+        if ($this->trip) return $trip;
+
+        foreach ($loop as $key=>$value) {
+            $trip[] = $key;
+
+            if ($key == $search) {
+                $this->trip = $trip;
+            }
+
+            if ($this->trip) break;
+
+            $this->walk($value, $search, $trip);
+            array_pop($trip);
+        }
     }
 
     public function fix($loop, $search, $data, $n)
