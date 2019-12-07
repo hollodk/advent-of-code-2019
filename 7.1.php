@@ -133,19 +133,6 @@ class IntCode
         $this->userInput = $input;
     }
 
-    private function appendInput($input, $phase)
-    {
-        $next = $phase+1;
-
-        if (!isset($this->phases[$next])) {
-            $next = 0;
-        }
-
-        $this->debug('add output from phase '.$phase.' ['.$input.'] to input phase '.$next);
-
-        $this->phases[$next]->input[] = $input;
-    }
-
     private function hasInput($phase)
     {
         return isset($this->phases[$phase]->input[$this->phases[$phase]->inputCounter]);
@@ -164,7 +151,7 @@ class IntCode
         return $input;
     }
 
-    private function getPhase()
+    private function initPhase()
     {
         $p = new \StdClass();
         $p->halt = false;
@@ -186,7 +173,7 @@ class IntCode
         }
 
         foreach ($phases as $loop=>$next) {
-            $this->phases[$loop] = $this->getPhase();
+            $this->phases[$loop] = $this->initPhase();
 
             if ($this->runPhases) {
                 $this->phases[$loop]->input[] = $next;
@@ -210,7 +197,13 @@ class IntCode
             foreach ($phases as $loop=>$next) {
                 if (!$this->phases[$loop]->halt) {
 
+                    if (isset($output)) {
+                        $this->debug('add output ['.$output.'] from last phase to input phase '.$loop);
+                        $this->phases[$loop]->input[] = $output;
+                    }
+
                     $this->info('switch phase to '.$loop.', input '. implode(',', $this->phases[$loop]->input));
+
                     $output = $this->run($loop);
                 }
             }
@@ -309,7 +302,6 @@ class IntCode
                 $this->debug('i '.$instruction.', o '.$outkey);
 
                 $this->debug('phase '.$phase.', output '.$o);
-                $this->appendInput($o, $phase);
 
                 if ($this->feedback) {
                     $skip = true;
