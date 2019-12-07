@@ -56,7 +56,7 @@ foreach ($range as $r1) {
 }
 
 $biggest = 0;
-$key = '';
+$k = '';
 
 foreach ($phases as $key=>$p) {
     $ic = new IntCode([
@@ -73,12 +73,12 @@ foreach ($phases as $key=>$p) {
 
     if ($output > $biggest) {
         $biggest = $output;
-        $key = $key;
+        $k = $key;
     }
 
     var_dump('output is '.$output);
 }
-var_dump($key, $biggest);
+var_dump($k, $biggest);
 
 class IntCode
 {
