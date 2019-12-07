@@ -1,15 +1,18 @@
 <?php
-
 $ic = new IntCode([
-    'info' => true,
+    'info' => false,
 ]);
 $ic->test();
 
 $code = '3,8,1001,8,10,8,105,1,0,0,21,46,59,84,93,110,191,272,353,434,99999,3,9,101,2,9,9,102,3,9,9,1001,9,5,9,102,4,9,9,1001,9,4,9,4,9,99,3,9,101,3,9,9,102,5,9,9,4,9,99,3,9,1001,9,4,9,1002,9,2,9,101,2,9,9,102,2,9,9,1001,9,3,9,4,9,99,3,9,1002,9,2,9,4,9,99,3,9,102,2,9,9,1001,9,5,9,1002,9,3,9,4,9,99,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,99,3,9,101,1,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,1,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,99,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,99';
 
 $phases = [];
+$range = [];
 
-$range = range(0,4);
+for ($i = 5; $i <= 9; $i++) {
+    $range[$i] = $i;
+}
+
 foreach ($range as $r1) {
 
     $l2 = $range;
@@ -47,57 +50,48 @@ foreach ($range as $r1) {
 }
 
 $biggest = 0;
-$key = '';
-
-$phases = ['9,8,7,6,5'];
-$code = '3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5';
-
-/*
-$phases = ['9,7,8,5,6'];
-$code = '3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10';
- */
+$k = '';
 
 foreach ($phases as $key=>$p) {
     $ic = new IntCode([
         'debug' => false,
-        'info' => true,
-        'feedback' => true,
+        'info' => false,
     ]);
 
     $input = 0;
 
     $ic->setPhases($p);
     $ic->setInput($input);
+    $ic->setFeedback(true);
     $ic->setCode($code);
 
     $output = $ic->process();
 
     if ($output > $biggest) {
         $biggest = $output;
-        $key = $key;
+        $k = $key;
     }
 
     var_dump('output is '.$output);
 }
-var_dump($key, $biggest);
+var_dump($k, $biggest);
 
 class IntCode
 {
+    // internal
     private $phases;
+
+    // user modify
+    private $info = false;
+    private $debug = false;
+    private $feedback = false;
+    private $userCode;
     private $runPhases;
     private $userInput;
-    private $debug = false;
-    private $info = false;
-    private $feedback = false;
-    private $code;
 
     public function __construct($option=null)
     {
         $this->reset();
-
-        if (isset($option['feedback'])) {
-            $this->feedback = $option['feedback'];
-        }
 
         if (isset($option['debug'])) {
             $this->debug = $option['debug'];
@@ -113,6 +107,11 @@ class IntCode
         $this->phases = [];
     }
 
+    public function setFeedback($feedback)
+    {
+        $this->feedback = $feedback;
+    }
+
     public function setPhases($phases)
     {
         $this->runPhases = preg_split("/,/", $phases);
@@ -120,7 +119,7 @@ class IntCode
 
     public function setCode($code)
     {
-        $this->code = preg_split("/,/", $code);
+        $this->userCode = preg_split("/,/", $code);
 
         if ($this->debug) {
             $this->print();
@@ -132,14 +131,22 @@ class IntCode
         $this->userInput = $input;
     }
 
-    private function appendInput($input)
+    private function appendInput($input, $phase)
     {
-        $this->input[] = $input;
+        $next = $phase+1;
+
+        if (!isset($this->phases[$next])) {
+            $next = 0;
+        }
+
+        $this->debug('add output from phase '.$phase.' ['.$input.'] to input phase '.$next);
+
+        $this->phases[$next]->input[] = $input;
     }
 
-    private function modifyInput($input, $phase)
+    private function hasInput($phase)
     {
-        $this->phases[$phase]->input = $input;
+        return isset($this->phases[$phase]->input[$this->phases[$phase]->inputCounter]);
     }
 
     private function getNextInput($phase)
@@ -155,46 +162,71 @@ class IntCode
         return $input;
     }
 
+    private function getPhase()
+    {
+        $p = new \StdClass();
+        $p->halt = false;
+        $p->input = [];
+        $p->output = null;
+        $p->pointer = 0;
+        $p->inputCounter = 0;
+        $p->code = $this->userCode;
+
+        return $p;
+    }
+
     public function process()
     {
-        if ($this->runPhases) {
-            $output = $this->userInput;
+        if (!$this->runPhases) {
+            $phases = [0];
+        } else {
+            $phases = $this->runPhases;
+        }
 
-            foreach ($this->runPhases as $loop=>$next) {
-                if (!isset($this->phases[$loop])) {
-                    $this->phases[$loop] = new \StdClass();
-                    $this->phases[$loop]->pointer = 0;
-                    $this->phases[$loop]->inputCounter = 0;
-                    $this->phases[$loop]->input = [];
+        foreach ($phases as $loop=>$next) {
+            $this->phases[$loop] = $this->getPhase();
+
+            if ($this->runPhases) {
+                $this->phases[$loop]->input[] = $next;
+
+                if ($loop == 0) {
+                    $this->phases[$loop]->input[] = $this->userInput;
                 }
 
-                $input = [$next, $output];
+            } else {
+                $this->phases[$loop]->input[] = $this->userInput;
+            }
+        }
 
-                $this->info('switch fase to '.$loop.': input '.implode(',',$input));
+        while (true) {
+            foreach ($phases as $loop=>$next) {
+                if (!$this->phases[$loop]->halt) {
 
-                $this->modifyInput($input, $loop);
-
-                $output = $this->run($loop);
+                    $this->info('switch phase to '.$loop.', input '. implode(',', $this->phases[$loop]->input));
+                    $output = $this->run($loop);
+                }
             }
 
-            return $this->getOutput($loop);
-
-        } else {
-            $this->phases[0] = new \StdClass();
-            $this->phases[0]->pointer = 0;
-            $this->phases[0]->inputCounter = 0;
-            $this->phases[0]->input = [$this->userInput];
-
-            $this->run(0);
-
-            return $this->getOutput(0);
+            if ($this->phases[$loop]->halt) {
+                $this->info('system halted, instruction 99');
+                break;
+            }
         }
+
+        return $this->getOutput($loop);
+    }
+
+    private function getCode($phase)
+    {
+        return $this->phases[$phase]->code;
     }
 
     private function run($phase)
     {
         while (true) {
-            $instruction = $this->code[$this->phases[$phase]->pointer];
+            $code = $this->getCode($phase);
+
+            $instruction = $code[$this->phases[$phase]->pointer];
 
             $this->debug('pointer: '.$this->phases[$phase]->pointer.', instruction: '.$instruction);
 
@@ -203,23 +235,24 @@ class IntCode
             $p3 = 0;
             $p4 = 0;
 
-            if ($instruction > 10) {
-                $o = sprintf('%05d', $instruction);
+            $o = sprintf('%05d', $instruction);
 
-                $instruction = (int)substr($o, -2);
-
-                $p1 = (int)substr($o, -3, 1);
-                $p2 = (int)substr($o, -4, 1);
-                $p3 = (int)substr($o, -5, 1);
-                $p4 = (int)substr($o, -6, 1);
-            }
+            $instruction = (int)substr($o, -2);
+            $p1 = (int)substr($o, -3, 1);
+            $p2 = (int)substr($o, -4, 1);
+            $p3 = (int)substr($o, -5, 1);
+            $p4 = (int)substr($o, -6, 1);
 
             $this->debug('instrustion: '.$instruction.', p1: '.$p1.', p2: '.$p2.', p3: '.$p3.', p4: '.$p4);
 
-            if ($instruction == 99) break;
+            if ($instruction == 99) {
+                $this->phases[$phase]->halt = true;
+                break;
+            }
 
             $newInstruction = null;
             $res = null;
+            $skip = false;
 
             switch ($instruction) {
             case 1:
@@ -262,10 +295,17 @@ class IntCode
                 $next = 2;
                 $outkey = $this->getOutKey($p1, 1, $phase);
 
-                $o = $this->code[$outkey];
+                $o = $code[$outkey];
                 $this->phases[$phase]->output = $o;
 
                 $this->debug('i '.$instruction.', o '.$outkey);
+
+                $this->debug('phase '.$phase.', output '.$o);
+                $this->appendInput($o, $phase);
+
+                if ($this->feedback) {
+                    $skip = true;
+                }
 
                 break;
 
@@ -331,18 +371,24 @@ class IntCode
                 throw new \Exception('not supported code '.$instruction);
             }
 
-            if ($res !== null) {
-                $this->debug('switch data on pointer '.$outkey.', from '.$this->code[$outkey].' to '.$res);
-                $this->code[$outkey] = $res;
-            }
-
-            if (!$newInstruction) {
+            if ($skip) {
                 $this->phases[$phase]->pointer += $next;
+                break;
+
             } else {
-                $this->phases[$phase]->pointer = $newInstruction;
+                if ($res !== null) {
+                    $this->debug('switch data on pointer '.$outkey.', from '.$code[$outkey].' to '.$res);
+                    $this->phases[$phase]->code[$outkey] = $res;
+                }
+
+                if (!$newInstruction) {
+                    $this->phases[$phase]->pointer += $next;
+                } else {
+                    $this->phases[$phase]->pointer = $newInstruction;
+                }
             }
 
-            if (!isset($this->code[$this->phases[$phase]->pointer])) throw new \Exception('out of scope');
+            if (!isset($this->phases[$phase]->code[$this->phases[$phase]->pointer])) throw new \Exception('out of scope');
         }
 
         return $this->getOutput($phase);
@@ -355,7 +401,7 @@ class IntCode
 
     public function print()
     {
-        foreach ($this->code as $i=>$o) {
+        foreach ($this->userCode as $i=>$o) {
             echo $i.': '.$o.PHP_EOL;
         }
 
@@ -364,12 +410,14 @@ class IntCode
 
     private function getVal($p, $offset, $phase)
     {
+        $code = $this->getCode($phase);
+
         if ($p == 0) {
-            $in = $this->code[$this->phases[$phase]->pointer+$offset];
-            $val = $this->code[$in];
+            $in = $code[$this->phases[$phase]->pointer+$offset];
+            $val = $code[$in];
 
         } else {
-            $val = $this->code[$this->phases[$phase]->pointer+$offset];
+            $val = $code[$this->phases[$phase]->pointer+$offset];
         }
 
         if (!is_numeric($val)) {
@@ -382,8 +430,10 @@ class IntCode
 
     private function getOutKey($p, $offset, $phase)
     {
+        $code = $this->getCode($phase);
+
         if ($p == 0) {
-            $outkey = $this->code[$this->phases[$phase]->pointer+$offset];
+            $outkey = $code[$this->phases[$phase]->pointer+$offset];
         } else {
             $outkey = $this->phases[$phase]->pointer+$offset;
         }
@@ -418,7 +468,7 @@ class IntCode
             die('error in test 1'.PHP_EOL);
         }
 
-        var_dump('test 1/2 is ok, '.$output);
+        var_dump('test 1/3 is ok, '.$output);
 
         $this->reset();
 
@@ -435,7 +485,26 @@ class IntCode
             die('error in test 2'.PHP_EOL);
         }
 
-        var_dump('test 2/2 is ok, '.$output);
+        var_dump('test 2/3 is ok, '.$output);
+
+        $this->reset();
+
+        $code = '3,8,1001,8,10,8,105,1,0,0,21,46,59,84,93,110,191,272,353,434,99999,3,9,101,2,9,9,102,3,9,9,1001,9,5,9,102,4,9,9,1001,9,4,9,4,9,99,3,9,101,3,9,9,102,5,9,9,4,9,99,3,9,1001,9,4,9,1002,9,2,9,101,2,9,9,102,2,9,9,1001,9,3,9,4,9,99,3,9,1002,9,2,9,4,9,99,3,9,102,2,9,9,1001,9,5,9,1002,9,3,9,4,9,99,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,99,3,9,101,1,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,1,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,99,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,101,1,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,99';
+
+        $phases = "7,8,6,9,5";
+        $this->setPhases($phases);
+        $this->setInput(0);
+        $this->setFeedback(true);
+        $this->setCode($code);
+        $output = $this->process();
+
+        if ($output != 35961106) {
+            var_dump($output);
+            die('error in test 3'.PHP_EOL);
+        }
+
+        var_dump('test 3/3 is ok, '.$output);
+        echo PHP_EOL;
 
         usleep(500000);
     }
