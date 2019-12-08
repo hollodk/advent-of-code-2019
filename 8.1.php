@@ -16,7 +16,7 @@ $image = $gi->process($digits, $w, $h);
 $res = $gi->validate($image);
 
 $image = $gi->render($image);
-$gi->print($image, 8, false, 1000);
+$gi->print($image, 8, true, false, 1000);
 
 class getImage
 {
@@ -97,7 +97,7 @@ class getImage
         }
     }
 
-    public function print($image, $scale=1, $printBlack=false, $speed=0)
+    public function print($image, $scale=1, $printBlack=false, $printWhite=true, $speed=0)
     {
         foreach ($image as $layer) {
             foreach ($layer as $height) {
@@ -118,7 +118,11 @@ class getImage
                                 break;
 
                             case 1:
-                                echo $digit;
+                                if ($printWhite) {
+                                    echo $digit;
+                                } else {
+                                    echo ' ';
+                                }
                                 break;
 
                             case 2:
