@@ -14,10 +14,9 @@ $digits = str_split($input);
 $gi = new getImage();
 $image = $gi->process($digits, $w, $h);
 $res = $gi->validate($image);
-var_dump('validate: '.$res);
 
 $image = $gi->render($image);
-$gi->print($image, 8);
+$gi->print($image, 8, false);
 
 class getImage
 {
@@ -91,8 +90,6 @@ class getImage
             }
         }
 
-        var_dump('most zero layer: '.$mostZero);
-
         if (!isset($count[$mostZero][1]) || !isset($count[$mostZero][2])) {
             return 0;
         } else {
@@ -100,7 +97,7 @@ class getImage
         }
     }
 
-    public function print($image, $scale=1)
+    public function print($image, $scale=1, $printBlack=false)
     {
         foreach ($image as $layer) {
             foreach ($layer as $height) {
@@ -109,7 +106,23 @@ class getImage
                     foreach ($height as $digit) {
 
                         for ($myWScale = 0; $myWScale < $scale; $myWScale++) {
-                            echo $digit;
+                            switch ($digit) {
+                            case 0:
+                                if ($printBlack) {
+                                    echo $digit;
+                                } else {
+                                    echo ' ';
+                                }
+                                break;
+
+                            case 1:
+                                echo $digit;
+                                break;
+
+                            case 2:
+                                echo ' ';
+                                break;
+                            }
                         }
                     }
 
