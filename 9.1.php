@@ -308,6 +308,11 @@ class IntCode
                 $val1 = $this->getValNg($modes[0], $params[0], $phase);
                 $val2 = $this->getValNg($modes[1], $params[1], $phase);
 
+                /*
+                $val1 = $params[0];
+                $val2 = $params[1];
+                 */
+
                 $data[] = $val1;
                 $data[] = $val2;
 
@@ -596,10 +601,8 @@ class IntCode
         $code = $this->getCode(0);
 
         if ($code[0] != 4138687) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$code[0]);
     }
 
     private function test2()
@@ -612,10 +615,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 773660) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test3()
@@ -630,10 +631,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 19650) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test4()
@@ -649,10 +648,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 35961106) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test5()
@@ -664,10 +661,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1125899906842624) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test6()
@@ -679,10 +674,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1219070632396864) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test7()
@@ -695,10 +688,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 109) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0].', loop '.$output['lastPhase']->currentLoop);
     }
 
     private function test8()
@@ -712,10 +703,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test9()
@@ -729,10 +718,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test10()
@@ -746,10 +733,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test11()
@@ -763,10 +748,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test12()
@@ -780,10 +763,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test13()
@@ -797,10 +778,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test14()
@@ -814,10 +793,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test15()
@@ -831,10 +808,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test16()
@@ -848,10 +823,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test17()
@@ -865,10 +838,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test18()
@@ -882,10 +853,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test19()
@@ -899,10 +868,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test20()
@@ -916,10 +883,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 0) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test21()
@@ -933,10 +898,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 999) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test22()
@@ -950,10 +913,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1000) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test23()
@@ -967,10 +928,8 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1001) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test24()
@@ -984,42 +943,33 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 4006117640) {
-            die('error in test '.($this->resets-1).PHP_EOL);
+            throw new \Exception('error in test '.($this->resets-1));
         }
-
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     public function test()
     {
-        $this->test2();
-        $this->test7(); // https://www.reddit.com/r/adventofcode/comments/e87d79/2019_day_9_part_1_help_understanding_the_test/
+        $tests = range(1,24);
 
-        $this->test1();
-        $this->test2();
-        $this->test3();
-        $this->test4();
-        $this->test5();
-        $this->test6();
-        $this->test8();
-        $this->test9();
-        $this->test10();
-        $this->test11();
-        $this->test12();
-        $this->test13();
-        $this->test14();
-        $this->test15();
-        $this->test16();
-        $this->test17();
-        $this->test18();
-        $this->test19();
-        $this->test20();
-        $this->test21();
-        $this->test22();
-        $this->test23();
-        $this->test24();
+        $success = true;
+        foreach ($tests as $test) {
+            // https://www.reddit.com/r/adventofcode/comments/e87d79/2019_day_9_part_1_help_understanding_the_test/
+            try {
+                echo 'run test '.$test.PHP_EOL;
 
-        echo PHP_EOL;
+                call_user_func([$this, 'test'.$test]);
+
+            } catch (\Exception $e) {
+                echo ' - '.$e->getMessage().PHP_EOL;
+                $success = false;
+            }
+        }
+
+        if (!$success) {
+            throw new \Exception('fail in tests');
+        }
+
+        echo PHP_EOL.'all tests went good'.PHP_EOL;
 
         usleep(500000);
     }
