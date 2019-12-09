@@ -328,6 +328,11 @@ class IntCode
                 $val1 = $this->getValNg($modes[0], $params[0], $phase);
                 $val2 = $this->getValNg($modes[1], $params[1], $phase);
 
+                /*
+                $val1 = $params[0];
+                $val2 = $params[1];
+                 */
+
                 $data[] = $val1;
                 $data[] = $val2;
 
@@ -408,7 +413,7 @@ class IntCode
                     $this->phases[$phase]->code[$outkey] = $res;
                 }
 
-                if (!$newInstruction) {
+                if ($newInstruction === null) {
                     $this->phases[$phase]->pointer += $next;
                 } else {
                     $this->phases[$phase]->pointer = $newInstruction;
@@ -559,14 +564,14 @@ class IntCode
     private function debug($msg)
     {
         if ($this->logLevel >= 2) {
-            var_dump($msg);
+            echo $msg.PHP_EOL;
         }
     }
 
     private function verbose($msg)
     {
         if ($this->logLevel >= 3) {
-            var_dump($msg);
+            echo $msg.PHP_EOL;
         }
     }
 
@@ -685,15 +690,15 @@ class IntCode
         $this->reset();
         $code = '109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99';
 
-        $this->maxLoops = 6;
+        $this->maxLoops = 10;
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output['output'][0] != 109 && $output['lastPhase']['currentLoop'] == $this->maxLoops+1) {
+        if ($output['output'][0] != 109) {
             die('error in test '.($this->resets-1).PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0].', loop '.$output['lastPhase']->currentLoop);
     }
 
     private function test8()
@@ -987,7 +992,9 @@ class IntCode
 
     public function test()
     {
-        $this->test7();
+        $this->test2();
+        $this->test7(); // https://www.reddit.com/r/adventofcode/comments/e87d79/2019_day_9_part_1_help_understanding_the_test/
+
         $this->test1();
         $this->test2();
         $this->test3();
