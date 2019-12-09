@@ -15,7 +15,8 @@ $ic->setInput(2);
 $ic->setCode($code);
 
 $output = $ic->process();
-var_dump($output);die();
+var_dump($output['output']);
+var_dump($output['lastPhase']->currentLoop);
 
 class IntCode
 {
@@ -30,6 +31,7 @@ class IntCode
     private $userCode;
     private $runPhases;
     private $userInput;
+    private $maxLoops;
 
     public function __construct($option=null)
     {
@@ -53,6 +55,7 @@ class IntCode
         $this->userCode = null;
         $this->runPhases = null;
         $this->userInput = null;
+        $this->maxLoops = 1000000;
     }
 
     public function setFeedback($feedback)
@@ -103,6 +106,8 @@ class IntCode
         $p->pointer = 0;
         $p->relative = 0;
         $p->inputCounter = 0;
+        $p->maxLoops = $this->maxLoops;
+        $p->currentLoop = 0;
 
         return $p;
     }
@@ -139,7 +144,7 @@ class IntCode
                 $this->printCode($loop);
             }
 
-            for ($i = 0; $i < 5; $i++) {
+            for ($i = 0; $i < 8; $i++) {
                 $this->phases[$loop]->code[] = 0;
                 foreach ($this->userCode as $uc) {
                     $this->phases[$loop]->code[] = $uc;
@@ -172,9 +177,17 @@ class IntCode
                 $this->info('system halted phase '.$loop.', instruction 99');
                 break;
             }
+
+            if ($this->phases[$loop]->currentLoop > $this->phases[$loop]->maxLoops) {
+                $this->info('system breaks phase '.$loop.', too many loops');
+                break;
+            }
         }
 
-        return $oo;
+        return [
+            'output' => $oo,
+            'lastPhase' => $this->phases[$loop],
+        ];
     }
 
     public function getCode($phase)
@@ -185,6 +198,12 @@ class IntCode
     private function run($phase)
     {
         while (true) {
+            $this->phases[$phase]->currentLoop++;
+
+            if ($this->phases[$phase]->currentLoop > $this->phases[$phase]->maxLoops) {
+                break;
+            }
+
             $code = $this->getCode($phase);
 
             $instruction = $code[$this->phases[$phase]->pointer];
@@ -493,11 +512,11 @@ class IntCode
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output[0] != 773660) {
+        if ($output['output'][0] != 773660) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test3()
@@ -511,11 +530,11 @@ class IntCode
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output[0] != 19650) {
+        if ($output['output'][0] != 19650) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test4()
@@ -530,11 +549,11 @@ class IntCode
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output[0] != 35961106) {
+        if ($output['output'][0] != 35961106) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test5()
@@ -545,11 +564,11 @@ class IntCode
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output[0] != 1125899906842624) {
+        if ($output['output'][0] != 1125899906842624) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test6()
@@ -560,11 +579,11 @@ class IntCode
         $this->setCode($code);
         $output = $this->process();
 
-        if ($output[0] != 1219070632396864) {
+        if ($output['output'][0] != 1219070632396864) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     private function test7()
@@ -572,15 +591,15 @@ class IntCode
         $this->reset();
         $code = '109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99';
 
+        $this->maxLoops = 1000;
         $this->setCode($code);
         $output = $this->process();
-        var_dump($output);die();
 
-        if ($output[0] != 1219070632396864) {
+        if ($output['output'][0] != 109 && $output['lastPhase']['currentLoop'] == $this->maxLoops+1) {
             die('error in test '.$this->resets.PHP_EOL);
         }
 
-        var_dump('test '.$this->resets.' is ok, '.$output[0]);
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
     }
 
     public function test()
@@ -591,7 +610,7 @@ class IntCode
         $this->test4();
         $this->test5();
         $this->test6();
-        //$this->test7();
+        $this->test7();
 
         echo PHP_EOL;
 
