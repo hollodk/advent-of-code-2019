@@ -1,6 +1,6 @@
 <?php
 $ic = new IntCode([
-    'info' => false,
+    'logLevel' => 0,
 ]);
 $ic->test();
 
@@ -22,8 +22,7 @@ class IntCode
 {
     // internal
     private $resets = 0;
-    private $info = false;
-    private $debug = false;
+    private $logLevel = 0;
 
     // user modify
     private $phases;
@@ -37,12 +36,8 @@ class IntCode
     {
         $this->reset();
 
-        if (isset($option['debug'])) {
-            $this->debug = $option['debug'];
-        }
-
-        if (isset($option['info'])) {
-            $this->info = $option['info'];
+        if (isset($option['logLevel'])) {
+            $this->logLevel = $option['logLevel'];
         }
     }
 
@@ -56,6 +51,7 @@ class IntCode
         $this->runPhases = null;
         $this->userInput = null;
         $this->maxLoops = 1000000;
+        $this->memoryAppend = 105;
     }
 
     public function setFeedback($feedback)
@@ -140,15 +136,10 @@ class IntCode
                 }
             }
 
-            if ($this->debug) {
-                $this->printCode($loop);
-            }
+            $this->printCode($loop, 2);
 
-            for ($i = 0; $i < 8; $i++) {
+            for ($i = 0; $i < $this->memoryAppend; $i++) {
                 $this->phases[$loop]->code[] = 0;
-                foreach ($this->userCode as $uc) {
-                    $this->phases[$loop]->code[] = $uc;
-                }
             }
         }
 
@@ -198,6 +189,8 @@ class IntCode
     private function run($phase)
     {
         while (true) {
+            $this->printCode($phase, 3);
+
             $this->phases[$phase]->currentLoop++;
 
             if ($this->phases[$phase]->currentLoop > $this->phases[$phase]->maxLoops) {
@@ -205,25 +198,24 @@ class IntCode
             }
 
             $code = $this->getCode($phase);
+            $pointer = $this->getPointer($phase);
 
-            $instruction = $code[$this->phases[$phase]->pointer];
+            $instruction = $code[$pointer];
 
-            $this->debug('pointer: '.$this->phases[$phase]->pointer.', relative: '.$this->phases[$phase]->relative.', instruction: '.$instruction);
-
-            $p1 = 0;
-            $p2 = 0;
-            $p3 = 0;
-            $p4 = 0;
+            $this->debug('pointer: '.$pointer.', relative: '.$this->phases[$phase]->relative.', instruction: '.$instruction);
 
             $o = sprintf('%05d', $instruction);
 
-            $instruction = (int)substr($o, -2);
-            $p1 = (int)substr($o, -3, 1);
-            $p2 = (int)substr($o, -4, 1);
-            $p3 = (int)substr($o, -5, 1);
-            $p4 = (int)substr($o, -6, 1);
+            $data = [];
+            $modes = [];
+            $params = [];
 
-            $this->info('code: '.$o.', instrustion: '.$instruction.', p1: '.$p1.', p2: '.$p2.', p3: '.$p3.', p4: '.$p4);
+            $instruction = (int)substr($o, -2);
+
+            $modes[] = (int)substr($o, -3, 1);
+            $modes[] = (int)substr($o, -4, 1);
+            $modes[] = (int)substr($o, -5, 1);
+            $modes[] = (int)substr($o, -6, 1);
 
             if ($instruction == 99) {
                 $this->phases[$phase]->halt = true;
@@ -238,26 +230,38 @@ class IntCode
             case 1:
                 $next = 4;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+                $params[] = $pointer+3;
 
-                $outkey = $this->getOutKey($p3, 3, $phase);
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+                $outkey = $this->getOutKeyNg($modes[2], $params[2], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
+                $data[] = $outkey;
+
                 $res = $val1+$val2;
-
-                $this->debug('i '.$instruction.', v1 '.$val1.', v2 '.$val2.', outkey '.$outkey);
 
                 break;
 
             case 2:
                 $next = 4;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+                $params[] = $pointer+3;
 
-                $outkey = $this->getOutKey($p3, 3, $phase);
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+                $outkey = $this->getOutKeyNg($modes[2], $params[2], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
+                $data[] = $outkey;
+
                 $res = $val1*$val2;
-
-                $this->debug('i '.$instruction.', v1 '.$val1.', v2 '.$val2.', outkey '.$outkey);
 
                 break;
 
@@ -269,22 +273,27 @@ class IntCode
                 } else {
                     $next = 2;
 
-                    $outkey = $this->getOutKey($p1, 1, $phase);
-                    $res = $this->getNextInput($phase);
+                    $params[] = $pointer+1;
 
-                    $this->debug('i '.$instruction.', outkey '.$outkey);
+                    $outkey = $this->getOutKeyNg($modes[0], $params[0], $phase);
+
+                    $data[] = $outkey;
+
+                    $res = $this->getNextInput($phase);
                 }
 
                 break;
 
             case 4:
                 $next = 2;
-                $outkey = $this->getOutKey($p1, 1, $phase);
+                $params[] = $pointer+1;
 
+                $outkey = $this->getOutKeyNg($modes[0], $params[0], $phase);
                 $o = $code[$outkey];
-                $this->phases[$phase]->out[] = $o;
 
-                $this->debug('i '.$instruction.', outkey '.$outkey);
+                $data[] = $outkey;
+
+                $this->phases[$phase]->out[] = $o;
 
                 $this->debug('phase '.$phase.', output '.$o);
 
@@ -293,8 +302,14 @@ class IntCode
             case 5:
                 $next = 3;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
 
                 $newInstruction = null;
                 if ($val1 != 0) {
@@ -302,15 +317,19 @@ class IntCode
                     $newInstruction = $val2;
                 }
 
-                $this->debug('i '.$newInstruction.', v1 '.$val1.', v2 '.$val2);
-
                 break;
 
             case 6:
                 $next = 3;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
 
                 $newInstruction = null;
                 if ($val1 == 0) {
@@ -318,43 +337,58 @@ class IntCode
                     $newInstruction = $val2;
                 }
 
-                $this->debug('i '.$newInstruction.', v1 '.$val1.', v2 '.$val2);
-
                 break;
 
             case 7:
                 $next = 4;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+                $params[] = $pointer+3;
 
-                $outkey = $this->getOutKey($p3, 3, $phase);
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+
+                $outkey = $this->getOutKeyNg($modes[2], $params[2], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
+                $data[] = $outkey;
+
                 $res = ($val1 < $val2) ? 1 : 0;
-
-                $this->debug('i '.$instruction.', v1 '.$val1.', v2 '.$val2.', outkey '.$outkey);
-
                 break;
 
             case 8:
                 $next = 4;
 
-                $val1 = $this->getVal($p1, 1, $phase);
-                $val2 = $this->getVal($p2, 2, $phase);
+                $params[] = $code[$pointer+1];
+                $params[] = $code[$pointer+2];
+                $params[] = $pointer+3;
 
-                $outkey = $this->getOutKey($p3, 3, $phase);
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+                $val2 = $this->getValNg($modes[1], $params[1], $phase);
+
+                $outkey = $this->getOutKeyNg($modes[2], $params[2], $phase);
+
+                $data[] = $val1;
+                $data[] = $val2;
+                $data[] = $outkey;
+
                 $res = ($val1 == $val2) ? 1 : 0;
-
-                $this->debug('i '.$instruction.', v1 '.$val1.', v2 '.$val2.', outkey '.$outkey);
 
                 break;
 
             case 9:
                 $next = 2;
 
-                $val1 = $this->getVal($p1, 1, $phase);
+                $params[] = $code[$pointer+1];
+
+                $val1 = $this->getValNg($modes[0], $params[0], $phase);
+
+                $data[] = $val1;
+
                 $this->phases[$phase]->relative += $val1;
 
-                $this->debug('i '.$instruction.', v1 '.$val1);
                 $this->debug('relative value is '.$this->phases[$phase]->relative);
 
                 break;
@@ -362,6 +396,8 @@ class IntCode
             default:
                 throw new \Exception('not supported code '.$instruction);
             }
+
+            $this->debugInstruction($params, $data, $modes);
 
             if ($skip) {
                 break;
@@ -383,13 +419,31 @@ class IntCode
         }
     }
 
-    public function printCode($phase)
+    public function debugInstruction($params, $data, $modes)
     {
+        $this->debug('modes '.implode(',', $modes));
+        $this->debug('params '.implode(',', $params));
+        $this->debug('data '.implode(',', $data));
+    }
+
+    public function printCode($phase, $logLevel)
+    {
+        $output = PHP_EOL;
         foreach ($this->phases[$phase]->code as $i=>$o) {
-            echo $i.': '.$o.PHP_EOL;
+            $output .= $i.': '.$o.PHP_EOL;
         }
 
-        echo PHP_EOL;
+        $output .= PHP_EOL;
+
+        switch ($logLevel) {
+        case 2:
+            $this->debug($output);
+            break;
+
+        case 3:
+            $this->verbose($output);
+            break;
+        }
     }
 
     private function getPointer($phase)
@@ -397,26 +451,26 @@ class IntCode
         return $this->phases[$phase]->pointer;
     }
 
-    private function getVal($p, $offset, $phase)
+    private function getValNg($mode, $param, $phase)
     {
         $code = $this->getCode($phase);
         $pointer = $this->getPointer($phase);
 
-        switch ($p) {
+        switch ($mode) {
         case 0:
             // position mode
-            $in = $code[$pointer+$offset];
+            $in = $param;
             $val = $code[$in];
             break;
 
         case 1:
             // parameter mode
-            $val = $code[$pointer+$offset];
+            $val = $param;
             break;
 
         case 2:
             // relative mode
-            $in = $code[$pointer+$offset];
+            $in = $param;
             $in += $this->phases[$phase]->relative;
             $val = $code[$in];
             break;
@@ -433,13 +487,44 @@ class IntCode
         return $val;
     }
 
-    private function getOutKey($p, $offset, $phase)
+    private function getOutKeyNg($mode, $param, $phase)
     {
         $code = $this->getCode($phase);
         $pointer = $this->getPointer($phase);
         $relative = $this->phases[$phase]->relative;
 
-        switch ($p) {
+        switch ($mode) {
+        case 0:
+            // position mode
+            $outkey = $code[$param];
+            break;
+
+        case 1:
+            // parameter mode
+            $outkey = $param;
+            break;
+
+        case 2:
+            // relative mode
+            $r = $code[$param];
+            $outkey = $relative+$r;
+
+            break;
+
+        default:
+            throw new \Exception('parameter mode not supported, '.$p);
+        }
+
+        return $outkey;
+    }
+
+    private function getOutKey($mode, $offset, $phase)
+    {
+        $code = $this->getCode($phase);
+        $pointer = $this->getPointer($phase);
+        $relative = $this->phases[$phase]->relative;
+
+        switch ($mode) {
         case 0:
             // position mode
             $outkey = $code[$pointer+$offset];
@@ -466,20 +551,29 @@ class IntCode
 
     private function info($msg)
     {
-        if ($this->info) {
+        if ($this->logLevel >= 1) {
             var_dump($msg);
         }
     }
 
     private function debug($msg)
     {
-        if ($this->debug) {
+        if ($this->logLevel >= 2) {
+            var_dump($msg);
+        }
+    }
+
+    private function verbose($msg)
+    {
+        if ($this->logLevel >= 3) {
             var_dump($msg);
         }
     }
 
     private function test1()
     {
+        $this->reset();
+
         $code = '1,0,0,3,1,1,2,3,1,3,4,3,1,5,0,3,2,6,1,19,1,19,10,23,2,13,23,27,1,5,27,31,2,6,31,35,1,6,35,39,2,39,9,43,1,5,43,47,1,13,47,51,1,10,51,55,2,55,10,59,2,10,59,63,1,9,63,67,2,67,13,71,1,71,6,75,2,6,75,79,1,5,79,83,2,83,9,87,1,6,87,91,2,91,6,95,1,95,6,99,2,99,13,103,1,6,103,107,1,2,107,111,1,111,9,0,99,2,14,0,0';
 
         $this->setCode($code);
@@ -497,7 +591,7 @@ class IntCode
         $code = $this->getCode(0);
 
         if ($code[0] != 4138687) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$code[0]);
@@ -513,7 +607,7 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 773660) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -531,7 +625,7 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 19650) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -550,7 +644,7 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 35961106) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -565,7 +659,7 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1125899906842624) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -580,7 +674,7 @@ class IntCode
         $output = $this->process();
 
         if ($output['output'][0] != 1219070632396864) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -591,12 +685,301 @@ class IntCode
         $this->reset();
         $code = '109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99';
 
-        $this->maxLoops = 1000;
+        $this->maxLoops = 6;
         $this->setCode($code);
         $output = $this->process();
 
         if ($output['output'][0] != 109 && $output['lastPhase']['currentLoop'] == $this->maxLoops+1) {
-            die('error in test '.$this->resets.PHP_EOL);
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test8()
+    {
+        $this->reset();
+        $code = '3,9,8,9,10,9,4,9,99,-1,8';
+
+        $this->setCode($code);
+        $this->setInput(8);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test9()
+    {
+        $this->reset();
+        $code = '3,9,8,9,10,9,4,9,99,-1,8';
+
+        $this->setCode($code);
+        $this->setInput(7);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test10()
+    {
+        $this->reset();
+        $code = '3,9,7,9,10,9,4,9,99,-1,8';
+
+        $this->setCode($code);
+        $this->setInput(7);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test11()
+    {
+        $this->reset();
+        $code = '3,9,7,9,10,9,4,9,99,-1,8';
+
+        $this->setCode($code);
+        $this->setInput(9);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test12()
+    {
+        $this->reset();
+        $code = '3,9,7,9,10,9,4,9,99,-1,8';
+
+        $this->setCode($code);
+        $this->setInput(9);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test13()
+    {
+        $this->reset();
+        $code = '3,3,1108,-1,8,3,4,3,99';
+
+        $this->setCode($code);
+        $this->setInput(8);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test14()
+    {
+        $this->reset();
+        $code = '3,3,1108,-1,8,3,4,3,99';
+
+        $this->setCode($code);
+        $this->setInput(2);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test15()
+    {
+        $this->reset();
+        $code = '3,3,1107,-1,8,3,4,3,99';
+
+        $this->setCode($code);
+        $this->setInput(2);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test16()
+    {
+        $this->reset();
+        $code = '3,3,1107,-1,8,3,4,3,99';
+
+        $this->setCode($code);
+        $this->setInput(8);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test17()
+    {
+        $this->reset();
+        $code = '3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9';
+
+        $this->setCode($code);
+        $this->setInput(0);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test18()
+    {
+        $this->reset();
+        $code = '3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9';
+
+        $this->setCode($code);
+        $this->setInput(2);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test19()
+    {
+        $this->reset();
+        $code = '3,3,1105,-1,9,1101,0,0,12,4,12,99,1';
+
+        $this->setCode($code);
+        $this->setInput(2);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test20()
+    {
+        $this->reset();
+        $code = '3,3,1105,-1,9,1101,0,0,12,4,12,99,1';
+
+        $this->setCode($code);
+        $this->setInput(0);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 0) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test21()
+    {
+        $this->reset();
+        $code = '3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99';
+
+        $this->setCode($code);
+        $this->setInput(1);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 999) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test22()
+    {
+        $this->reset();
+        $code = '3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99';
+
+        $this->setCode($code);
+        $this->setInput(8);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1000) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test23()
+    {
+        $this->reset();
+        $code = '3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99';
+
+        $this->setCode($code);
+        $this->setInput(12);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 1001) {
+            die('error in test '.($this->resets-1).PHP_EOL);
+        }
+
+        var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
+    }
+
+    private function test24()
+    {
+        $this->reset();
+        $code = trim(file_get_contents(__DIR__.'/input-9.0.txt'));
+
+        $this->setCode($code);
+        $this->setInput(1);
+
+        $output = $this->process();
+
+        if ($output['output'][0] != 4006117640) {
+            die('error in test '.($this->resets-1).PHP_EOL);
         }
 
         var_dump('test '.$this->resets.' is ok, '.$output['output'][0]);
@@ -604,13 +987,30 @@ class IntCode
 
     public function test()
     {
+        $this->test7();
         $this->test1();
         $this->test2();
         $this->test3();
         $this->test4();
         $this->test5();
         $this->test6();
-        $this->test7();
+        $this->test8();
+        $this->test9();
+        $this->test10();
+        $this->test11();
+        $this->test12();
+        $this->test13();
+        $this->test14();
+        $this->test15();
+        $this->test16();
+        $this->test17();
+        $this->test18();
+        $this->test19();
+        $this->test20();
+        $this->test21();
+        $this->test22();
+        $this->test23();
+        $this->test24();
 
         echo PHP_EOL;
 
