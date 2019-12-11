@@ -10,7 +10,7 @@ $ic = new IntCode([
 $ic->setCode($input);
 $phases = $ic->configurePhases();
 
-$gridSize = 1000;
+$gridSize = 100;
 $grid = [];
 $range = range(0,$gridSize);
 foreach ($range as $k1=>$y) {
@@ -27,6 +27,11 @@ $x = $gridSize/2;
 $y = $gridSize/2;
 $facing = 360;
 $painted = 0;
+
+$key = $x.','.$y;
+$grid[$key] = [
+    'color' => 'white',
+];
 
 try {
     $loop = 0;
@@ -107,7 +112,32 @@ try {
     }
 
 } catch (\Exception $e) {
-    var_dump('painted '.$painted);
+
+    if (($loop%1) == 0) {
+        $g = new Grid();
+        $gg = $g->build($gridSize,$gridSize);
+
+        foreach ($grid as $k1=>$v1) {
+            $o = preg_split("/,/", $k1);
+
+            if ($v1['painted']) {
+                switch ($v1['color']) {
+                case 'black':
+                    $gg[$o[1]][$o[0]] = 0;
+                    break;
+
+                case 'white':
+                    $gg[$o[1]][$o[0]] = 1;
+                    break;
+                }
+            }
+        }
+
+        $gg[$y][$x] = 2;
+
+        $g->print([$gg]);
+    }
+
 }
 
 function debug($currentX, $currentY, $currentColor, $input, $out, $color, $dir, $facing, $x, $y, $painted)
