@@ -967,12 +967,12 @@ class IntCode
         foreach ($tests as $test) {
             // https://www.reddit.com/r/adventofcode/comments/e87d79/2019_day_9_part_1_help_understanding_the_test/
             try {
-                echo 'run test '.$test.PHP_EOL;
+                $this->info('run test '.$test);
 
                 call_user_func([$this, 'test'.$test]);
 
             } catch (\Exception $e) {
-                echo ' - '.$e->getMessage().PHP_EOL;
+                echo '[BAD INTCODE TEST] '.$e->getMessage().PHP_EOL;
                 $success = false;
             }
         }
@@ -981,8 +981,6 @@ class IntCode
             throw new \Exception('fail in tests');
         }
 
-        echo PHP_EOL.'all tests went good'.PHP_EOL;
-
-        usleep(500000);
+        echo 'all IntCode tests went good'.PHP_EOL;
     }
 }
