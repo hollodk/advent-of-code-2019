@@ -13,6 +13,11 @@ class Grid
         $this->coords[$y][$x] = $value;
     }
 
+    public function set($grid)
+    {
+        $this->coords = $grid;
+    }
+
     public function get($fix=true)
     {
         if ($fix) {
