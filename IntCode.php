@@ -182,6 +182,11 @@ class IntCode
         ];
     }
 
+    public function getPhase($phase)
+    {
+        return $this->phases[$phase];
+    }
+
     public function getCode($phase)
     {
         return $this->phases[$phase]->code;
