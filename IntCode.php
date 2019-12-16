@@ -27,6 +27,31 @@ class IntCode
         }
     }
 
+    public function __clone()
+    {
+        $object_vars = get_object_vars($this);
+
+        foreach ($object_vars as $attr_name => $attr_value)
+        {
+            if (is_object($this->$attr_name))
+            {
+                $this->$attr_name = clone $this->$attr_name;
+            }
+            else if (is_array($this->$attr_name))
+            {
+                // Note: This copies only one dimension arrays
+                foreach ($this->$attr_name as &$attr_array_value)
+                {
+                    if (is_object($attr_array_value))
+                    {
+                        $attr_array_value = clone $attr_array_value;
+                    }
+                    unset($attr_array_value);
+                }
+            }
+        }
+    }
+
     private function reset()
     {
         $this->resets++;
@@ -71,6 +96,11 @@ class IntCode
         } else {
             $this->phases[$phase]->input[] = $input;
         }
+    }
+
+    public function getInput($phase)
+    {
+        return $this->phases[$phase]->input;
     }
 
     private function hasInput($phase)

@@ -29,39 +29,44 @@ class Grid
 
     public function fix($input)
     {
-        $minY = min(array_keys($input));
-        $maxY = max(array_keys($input));
-        $minX = null;
-        $maxX = null;
+        if (count($input) == 0) {
+            $input = [];
 
-        foreach ($input as $i) {
-            $keys = array_keys($i);
-            if ($minX === null || min($keys) < $minX) {
-                $minX = min($keys);
-            }
+        } else {
+            $minY = min(array_keys($input));
+            $maxY = max(array_keys($input));
+            $minX = null;
+            $maxX = null;
 
-            if ($maxX === null || max($keys) > $maxX) {
-                $maxX = max($keys);
-            }
-        }
-
-        $rangeY = range($minY, $maxY);
-        $rangeX = range($minX, $maxX);
-
-        foreach ($rangeY as $y) {
-            foreach ($rangeX as $x) {
-                if (!isset($input[$y])) {
-                    $input[$y] = [];
+            foreach ($input as $i) {
+                $keys = array_keys($i);
+                if ($minX === null || min($keys) < $minX) {
+                    $minX = min($keys);
                 }
 
-                if (!isset($input[$y][$x])) {
-                    $input[$y][$x] = null;
+                if ($maxX === null || max($keys) > $maxX) {
+                    $maxX = max($keys);
                 }
             }
 
-            ksort($input[$y]);
+            $rangeY = range($minY, $maxY);
+            $rangeX = range($minX, $maxX);
+
+            foreach ($rangeY as $y) {
+                foreach ($rangeX as $x) {
+                    if (!isset($input[$y])) {
+                        $input[$y] = [];
+                    }
+
+                    if (!isset($input[$y][$x])) {
+                        $input[$y][$x] = null;
+                    }
+                }
+
+                ksort($input[$y]);
+            }
+            ksort($input);
         }
-        ksort($input);
 
         return $input;
     }
