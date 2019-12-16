@@ -5,27 +5,16 @@ require __DIR__.'/bootstrap.php';
 $file = 'input-15.txt';
 $input = trim(file_get_contents(__DIR__.'/'.$file));
 
-$ic = new IntCode();
-$ic->setCode($input);
-$ic->configurePhases();
-
 $sleep = 100*1000;
 
-//$grid->set(unserialize(file_get_contents('grid-15.txt')));
+$grid->set(unserialize(file_get_contents('grid-15.txt')));
 
 $robot = new Robot();
 
-$options = $robot->getOptions(0, 0);
-$foundOxygen = null;
-$oxygenX = null;
-$oxygenY = null;
+$options = $robot->getOptions(14, -14);
 
 foreach ($options as $i=>$opt) {
-    $cloneInt = clone $ic;
-    $cloneInt->addInput(0, $opt['direction']);
-
     $spawns[] = [
-        'ic' => $cloneInt,
         'x' => $opt['x'],
         'y' => $opt['y'],
         'steps' => 0,
@@ -43,56 +32,35 @@ while (true) {
 
         $spawn['steps']++;
 
-        $output = $spawn['ic']->run(0);
+        $output = $grid->getCoord($spawn['x'], $spawn['y']);
 
-        if (isset($output[0])) {
-            if ($output[0] === 1) {
-                $grid->append($x, $y, 'yellow');
+        if ($output === 'yellow') {
+            $g[$y][$x] = 'blue';
+            logger('ok, move to '.$x.','.$y);
 
-                $g[$y][$x] = 'blue';
-                logger('ok, move to '.$x.','.$y);
+            $options = $robot->getOptions($x, $y);
 
-                $options = $robot->getOptions($x, $y);
+            foreach ($options as $i=>$opt) {
+                logger('spawn '.$spawnKey.', walk in direction '.$opt['direction'].', steps '.$spawn['steps']);
 
-                foreach ($options as $i=>$opt) {
-                    logger('spawn '.$spawnKey.', walk in direction '.$opt['direction'].', steps '.$spawn['steps']);
-
-                    $cloneInt = clone $spawn['ic'];
-                    $cloneInt->addInput(0, $opt['direction']);
-
-                    $spawns[] = [
-                        'ic' => $cloneInt,
-                        'x' => $opt['x'],
-                        'y' => $opt['y'],
-                        'steps' => $spawn['steps'],
-                    ];
-                }
-
-            } elseif ($output[0] === 2) {
-                $grid->append($x, $y, 'green');
-
-                logger('found oxigen at '.$x.','.$y);
-
-                if ($foundOxygen === null) {
-                    $foundOxygen = $spawn['steps'];
-                    $oxygenX = $spawn['x'];
-                    $oxygenY = $spawn['y'];
-                }
-
-            } elseif ($output[0] === 0) {
-                $grid->append($x, $y, 'red');
-
-                logger('wall at '.$x.','.$y);
+                $spawns[] = [
+                    'x' => $opt['x'],
+                    'y' => $opt['y'],
+                    'steps' => $spawn['steps'],
+                ];
             }
+
+        } elseif ($output === 'green') {
+            logger('found oxigen at '.$x.','.$y);
+
+        } elseif ($output === 'red') {
+            logger('wall at '.$x.','.$y);
         }
 
        unset($spawns[$spawnKey]);
     }
 
     $grid->print($g);
-    if ($foundOxygen) {
-        dump('found oxygen after '.$foundOxygen.', '.$oxygenX.','.$oxygenY);
-    }
 
     if (count($spawns) == 0) break;
 
@@ -103,7 +71,6 @@ while (true) {
 
 function logger($msg)
 {
-    return;
     echo $msg.PHP_EOL;
 }
 

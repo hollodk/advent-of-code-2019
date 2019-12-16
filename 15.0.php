@@ -9,236 +9,155 @@ $ic = new IntCode();
 $ic->setCode($input);
 $ic->configurePhases();
 
-$x = 0;
-$y = 0;
-$sleep = 250*1000;
-$sleep = 0;
-$auto = 0;
-$predefined = [
-    1,1,
-    3,3,
-    2,2,
-    3,3,3,3,
-    1,1,1,1,1,1,1,1,1,1,
-    4,4,
-    2,2,2,2,
-    4,4,
-    2,2,
-    4,4,
-    1,1,
-    4,4,
-    2,2,
-    4,4,
-    1,1,
-    4,4,
-    2,2,2,2,
-    4,4,
-    2,2,2,2,
-    4,4,4,4,
-    2,2,
-    3,3,
-    2,2,
-    4,4,4,4,4,4,4,4,
-    1,1,
-    3,3,
-    1,1,
-    4,4,
-    1,1,
-    3,3,3,3,3,3,
-    1,1,
-    4,4,4,4,4,4,
-    1,1,1,1,1,1,1,1,
-    3,3,
-    2,2,2,2,
-    3,3,
-    1,1,1,1,
-    3,3,
-    2,2,2,2,2,2,
-    3,3,3,3,
-    1,1,
-    4,4,
-    1,1,1,1,
-    3,3,3,3,
-    2,2,
-    3,3,3,3,3,3,
-    1,1,1,1,
-    3,3,3,3,3,3,
-    1,1,
-    4,4,
-    1,1,1,1,
-    4,4,4,4,4,4,
-    2,2,2,2,
-    4,4,
-    2,2,
-    4,4,4,4,4,4,4,4,
-    1,1,1,1,
-    3,3,
-    2,2,
-    3,3,3,3,
-    1,1,
-    4,4,
-    1,1,
-    4,4,
-    1,1,
-    4,4,
-    2,2,
-    4,4,
-    2,2,
-    4,4,4,4,
-    2,2,
-    3,3,
-    2,2,
-    3,3,
-    1,1,
-];
-dump(count($predefined));die();
+$sleep = 100*1000;
 
-$kill = false;
-$kill = true;
+//$grid->set(unserialize(file_get_contents('grid-15.txt')));
 
-$grid->set(unserialize(file_get_contents('grid-15.txt')));
+$robot = new Robot();
+
+$options = $robot->getOptions(0, 0);
+$foundOxygen = null;
+$oxygenX = null;
+$oxygenY = null;
+
+foreach ($options as $i=>$opt) {
+    $cloneInt = clone $ic;
+    $cloneInt->addInput(0, $opt['direction']);
+
+    $spawns[] = [
+        'ic' => $cloneInt,
+        'x' => $opt['x'],
+        'y' => $opt['y'],
+        'steps' => 0,
+    ];
+}
 
 while (true) {
-    //dump('current location '.$x.','.$y);
-
-    $output = $ic->run(0);
-    $halt = $ic->getPhase(0)->halt;
-
-    $continue = false;
-
-    if (isset($output[0])) {
-        if ($output[0] === 1) {
-            $coord = getCoord($direction, $x, $y);
-
-            $x = $coord['x'];
-            $y = $coord['y'];
-
-            $grid->append($x, $y, 'yellow');
-
-            //dump('ok, move to '.$x.','.$y);
-
-            $continue = true;
-
-        } elseif ($output[0] === 2) {
-            $grid->append($x, $y, 'green');
-
-            dump('found oxigen');
-
-        } elseif ($output[0] === 0) {
-            $coord = getCoord($direction, $x, $y);
-            $grid->append($coord['x'], $coord['y'], 'red');
-
-            dump('current: '.$direction);
-            dump(implode(', ',$predefined));
-            dump('wall');
-
-            if ($kill) die();
-        }
-    } else {
-        //dump('error', $output);
-    }
-
-    //dump('halt: '.(int)$halt);
-
-    // 1 north
-    // 2 south
-    // 3 west
-    // 4 east
+    logger('spawns '.count($spawns));
 
     $g = $grid->get();
 
-    if (count($predefined)) {
-        $direction = array_shift($predefined);
+    foreach ($spawns as $spawnKey=>$spawn) {
+        $x = $spawn['x'];
+        $y = $spawn['y'];
 
-    } else {
-        if ($auto == 0) {
-            $input = readline('direction');
-            switch ($input) {
-            case 'auto-50':
-                $auto = 50;
-                break;
+        $spawn['steps']++;
 
-            case 'auto-100':
-                $auto = 100;
-                break;
+        $output = $spawn['ic']->run(0);
 
-            case 'auto-200':
-                $auto = 200;
-                break;
+        if (isset($output[0])) {
+            if ($output[0] === 1) {
+                $grid->append($x, $y, 'yellow');
 
-            case 'w':
-                $direction = 1;
-                break;
+                $g[$y][$x] = 'blue';
+                logger('ok, move to '.$x.','.$y);
 
-            case 'a':
-                $direction = 3;
-                break;
+                $options = $robot->getOptions($x, $y);
 
-            case 's':
-                $direction = 2;
-                break;
+                foreach ($options as $i=>$opt) {
+                    logger('spawn '.$spawnKey.', walk in direction '.$opt['direction'].', steps '.$spawn['steps']);
 
-            default:
-                $direction = 4;
-                break;
+                    $cloneInt = clone $spawn['ic'];
+                    $cloneInt->addInput(0, $opt['direction']);
+
+                    $spawns[] = [
+                        'ic' => $cloneInt,
+                        'x' => $opt['x'],
+                        'y' => $opt['y'],
+                        'steps' => $spawn['steps'],
+                    ];
+                }
+
+            } elseif ($output[0] === 2) {
+                $grid->append($x, $y, 'green');
+
+                logger('found oxigen at '.$x.','.$y);
+
+                if ($foundOxygen === null) {
+                    $foundOxygen = $spawn['steps'];
+                    $oxygenX = $spawn['x'];
+                    $oxygenY = $spawn['y'];
+                }
+
+            } elseif ($output[0] === 0) {
+                $grid->append($x, $y, 'red');
+
+                logger('wall at '.$x.','.$y);
             }
-
-        } else {
-            if ($kill) die();
-
-            while (true) {
-                $direction = rand(1,4);
-                $coord = getCoord($direction, $x, $y);
-
-                $nx = $coord['x'];
-                $ny = $coord['y'];
-
-                if (!isset($g[$ny]) || !isset($g[$ny][$nx]) || $g[$ny][$nx] != 'red') break;
-            }
-
-            $auto--;
         }
+
+       unset($spawns[$spawnKey]);
     }
 
-    //dump('walk in direction '.$direction);
-
-    $ic->addInput(0, $direction);
-    $g[$y][$x] = 'blue';
     $grid->print($g);
+    if ($foundOxygen) {
+        dump('found oxygen after '.$foundOxygen.', '.$oxygenX.','.$oxygenY);
+    }
+
+    if (count($spawns) == 0) break;
 
     usleep($sleep);
 
     echo PHP_EOL;
-
-    file_put_contents('grid-15.txt', serialize($g));
 }
 
-function getCoord($direction, $x, $y)
+function logger($msg)
 {
-    switch ($direction) {
-    case 1:
-        $ywall = $y-1;
-        $xwall = $x;
-        break;
+    return;
+    echo $msg.PHP_EOL;
+}
 
-    case 2:
-        $ywall = $y+1;
-        $xwall = $x;
-        break;
+class Robot
+{
+    private $paths = [];
 
-    case 3:
-        $ywall = $y;
-        $xwall = $x-1;
-        break;
+    public function getOptions($x, $y)
+    {
+        $options = [];
 
-    case 4:
-        $ywall = $y;
-        $xwall = $x+1;
-        break;
+        $key = $x.','.$y;
+
+        $range = range(1, 4);
+        foreach ($range as $r) {
+            switch ($r) {
+            case 1:
+                $nx = $x;
+                $ny = $y-1;
+
+                break;
+
+            case 2:
+                $nx = $x;
+                $ny = $y+1;
+
+                break;
+
+            case 3:
+                $nx = $x-1;
+                $ny = $y;
+
+                break;
+
+            case 4:
+                $nx = $x+1;
+                $ny = $y;
+
+                break;
+            }
+
+            $nkey = $nx.','.$ny;
+
+            if (!isset($this->paths[$nkey])) {
+                $options[] = [
+                    'direction' => $r,
+                    'x' => $nx,
+                    'y' => $ny,
+                ];
+            }
+        }
+
+        $this->paths[$key] = true;
+
+        return $options;
     }
-
-    return [
-        'x' => $xwall,
-        'y' => $ywall,
-    ];
 }

@@ -27,6 +27,11 @@ class Grid
         return $this->coords;
     }
 
+    public function getCoord($x, $y)
+    {
+        return $this->coords[$y][$x];
+    }
+
     public function fix($input)
     {
         if (count($input) == 0) {
