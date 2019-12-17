@@ -118,7 +118,6 @@ class Grid
         $cyan = 46;
 
         foreach ($image as $height) {
-
             for ($myHScale = 0; $myHScale < $scale; $myHScale++) {
                 foreach ($height as $digit) {
 
@@ -195,6 +194,13 @@ class Grid
                             } else {
                                 echo "@";
                             }
+                            break;
+
+                        case $digit === '.':
+                        case $digit === '#':
+                        case $digit === '@':
+                        case $digit === 'O':
+                            echo $digit;
                             break;
 
                         default:

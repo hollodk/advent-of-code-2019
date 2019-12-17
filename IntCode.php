@@ -62,7 +62,7 @@ class IntCode
         $this->runPhases = null;
         $this->userInput = null;
         $this->maxLoops = 1000000;
-        $this->memoryAppend = 1000;
+        $this->memoryAppend = 5000;
         $this->speed = 0;
     }
 
