@@ -29,6 +29,10 @@ class Grid
 
     public function getCoord($x, $y)
     {
+        if (!isset($this->coords[$y]) || !isset($this->coords[$y][$x])) {
+            return null;
+        }
+
         return $this->coords[$y][$x];
     }
 
@@ -106,8 +110,12 @@ class Grid
         }
     }
 
-    public function print($image, $scale=1, $speed=0, $ascii=true)
+    public function print($image=null, $scale=1, $speed=0, $ascii=true)
     {
+        if ($image == null) {
+            $image = $this->get();
+        }
+
         $white = 107;
         $black = 40;
         $red = 41;
@@ -200,6 +208,10 @@ class Grid
                         case $digit === '#':
                         case $digit === '@':
                         case $digit === 'O':
+                        case $digit === '<':
+                        case $digit === '>':
+                        case $digit === '^':
+                        case $digit === 'v':
                             echo $digit;
                             break;
 

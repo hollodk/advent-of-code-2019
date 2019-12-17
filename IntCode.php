@@ -310,6 +310,8 @@ class IntCode
                     $next = 0;
                     $skip = true;
 
+                    $this->info('phase '.$phase.' is waiting for input');
+
                 } else {
                     $next = 2;
 
@@ -536,10 +538,14 @@ class IntCode
             throw new \Exception('parameter mode not supported, '.$p);
         }
 
+        /**
+         * does not have to be numeric apparently
+         *
         if (!is_numeric($val)) {
             var_dump($this->phases[$phase]->input);
             var_dump($val);die('value is not numeric');
         }
+         */
 
         return $val;
     }
