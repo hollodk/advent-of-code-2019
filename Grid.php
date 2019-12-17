@@ -226,4 +226,57 @@ class Grid
             }
         }
     }
+
+    public function addIntersection()
+    {
+        $sum = 0;
+        $g = $this->get();
+
+        foreach ($g as $y=>$v1) {
+            foreach ($v1 as $x=>$value) {
+                $points = [
+                    [
+                        'x' => $x,
+                        'y' => $y,
+                    ],
+                    [
+                        'x' => $x-1,
+                        'y' => $y,
+                    ],
+                    [
+                        'x' => $x+1,
+                        'y' => $y,
+                    ],
+                    [
+                        'x' => $x,
+                        'y' => $y-1,
+                    ],
+                    [
+                        'x' => $x,
+                        'y' => $y+1,
+                    ],
+                ];
+
+                $intersection = true;
+                foreach ($points as $point) {
+                    $xkey = $point['x'];
+                    $ykey = $point['y'];
+
+                    if (isset($g[$ykey][$xkey]) && $g[$ykey][$xkey] != '#') {
+                        $intersection = false;
+                    }
+                }
+
+                if ($intersection) {
+                    $sum += $x*$y;
+
+                    $g[$y][$x] = 'O';
+                }
+            }
+        }
+
+        $this->set($g);
+
+        return $sum;
+    }
 }
