@@ -33,7 +33,7 @@ $robot = new Robot(
     'to-block'
 );
 
-$spawn = $robot->run();
+$spawn = $robot->run(true, true, 250);
 $path = $spawn['path'];
 
 $res = [];

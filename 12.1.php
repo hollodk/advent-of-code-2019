@@ -10,6 +10,15 @@ $input = <<<EOF
 EOF;
 
 /*
+$total = 4686774924;
+$input = <<<EOF
+<x=-8, y=-10, z=0>
+<x=5, y=5, z=10>
+<x=2, y=-7, z=3>
+<x=9, y=-8, z=-3>
+EOF;
+
+$total = 2772;
 $input = <<<EOF
 <x=-1, y=0, z=2>
 <x=2, y=-10, z=-7>
@@ -21,6 +30,13 @@ EOF;
 $lines = $tools->linesToArray($input);
 
 $moons = [];
+$orbits = [
+    0 => [],
+    1 => [],
+    2 => [],
+    3 => [],
+];
+
 foreach ($lines as $l) {
     if (preg_match("/x=((|\-)\d+), y=((|\-)\d+), z=((|\-)\d+)/", $l, $o)) {
         $moons[] = [
@@ -38,12 +54,32 @@ foreach ($lines as $l) {
     }
 }
 
-$compare = json_encode($moons);
-$originCompare = $moons[0]['pos']['x'].$moons[0]['vel']['x'];
+$compare = [];
+$comparex = [];
+$comparey = [];
+$comparez = [];
+
+foreach ($moons as $key=>$moon) {
+    $compare[$key] = compare($moon);
+    $comparex[$key] = compare($moon, 'x');
+    $comparey[$key] = compare($moon, 'y');
+    $comparez[$key] = compare($moon, 'z');
+}
 
 $loop = 0;
+$lastx = 0;
+$lasty = 0;
+$lastz = 0;
+
+$ox = null;
+$oy = null;
+$oz = null;
+
+$start = time();
+
 while (true) {
     $loop++;
+
     foreach ($moons as $k1=>$moon) {
         foreach ($moons as $k2=>$moon2) {
             if ($k1 == $k2) continue;
@@ -77,14 +113,104 @@ while (true) {
         $moons[$k]['pos']['z'] += $moon['vel']['z'];
     }
 
-    $simpleCompare = $moons[0]['pos']['x'].$moons[0]['vel']['x'];
-    if ($originCompare == $simpleCompare) {
-        $d = json_encode($moons);
-        if ($compare == $d) break;
+    /*
+    foreach ($compare as $key=>$moon) {
+        if ($compare[$key] == compare($moons[$key])) {
+            $divide = round($total/$loop, 8);
+            $mod = ($total%$loop);
+
+            if ($mod == 0) {
+                dump($key.': '.$loop.', divide by '.$divide);
+            }
+        }
+    }
+     */
+
+    $foundx = false;
+    $foundy = false;
+    $foundz = false;
+
+    $allx = true;
+    $ally = true;
+    $allz = true;
+
+    $divide = 0;
+
+    foreach ($comparex as $key=>$moon) {
+        if ($moon != compare($moons[$key],'x')) {
+            $allx = false;
+        }
     }
 
-    if (($loop%100000) == 0) echo number_format($loop).PHP_EOL;
+    if ($allx) {
+        $diff = $loop-$lastx;
+        $lastx = $loop;
+        $foundx = true;
+        $ox = $diff;
+
+        dump($key.':x '.$loop.', lastx: '.$diff.', divide by '.$divide);
+    }
+
+    foreach ($comparey as $key=>$moon) {
+        if ($moon != compare($moons[$key],'y')) {
+            $ally = false;
+        }
+    }
+
+    if ($ally) {
+        $diff = $loop-$lasty;
+        $lasty = $loop;
+        $foundy = true;
+        $oy = $diff;
+
+        dump($key.':y '.$loop.', lasty: '.$diff.', divide by '.$divide);
+    }
+
+    foreach ($comparez as $key=>$moon) {
+        if ($moon != compare($moons[$key],'z')) {
+            $allz = false;
+        }
+    }
+
+    if ($allz) {
+        $diff = $loop-$lastz;
+        $lastz = $loop;
+        $foundz = true;
+        $oz = $diff;
+
+        dump($key.':z '.$loop.', lastz: '.$diff.', divide by '.$divide);
+    }
+
+    if ($loop > 100000 && $ox && $oy && $oz) break;
+
+    if (($loop%500000) == 0) {
+        $diff = time()-$start;
+
+        echo number_format($loop).', '.round($loop/$diff).'/sec'.PHP_EOL;
+    }
+
+    if ($foundx || $foundy || $foundz) {
+        echo PHP_EOL;
+    }
 }
 
-dump($moons, $loop);
-dump($originCompare, $simpleCompare);
+dump('find lcm of: '.$ox.', '.$oy.', '.$oz);
+
+function compare($moon, $coord=null)
+{
+    if ($coord) {
+        return sprintf('%s,%s',
+            $moon['pos'][$coord],
+            $moon['vel'][$coord]
+        );
+    }
+
+    return sprintf('%s,%s,%s-%s,%s,%s',
+        $moon['pos']['x'],
+        $moon['pos']['y'],
+        $moon['pos']['z'],
+        $moon['vel']['x'],
+        $moon['vel']['y'],
+        $moon['vel']['z']
+    );
+}
