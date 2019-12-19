@@ -110,7 +110,12 @@ class Grid
         }
     }
 
-    public function print($image=null, $scale=1, $speed=0, $ascii=true)
+    public function printn($image=null, $exact=true, $scale=1, $speed=0, $ascii=true)
+    {
+        return $this->print($image, $scale, $speed, $ascii, $exact);
+    }
+
+    public function print($image=null, $scale=1, $speed=0, $ascii=true, $exact=false)
     {
         if ($image == null) {
             $image = $this->get();
@@ -132,92 +137,97 @@ class Grid
                     for ($myWScale = 0; $myWScale < $scale; $myWScale++) {
                         usleep($speed);
 
-                        switch (true) {
-                        case $digit === 0:
-                        case $digit === 'black':
-                            if ($digit === null) {
-                                echo ' ';
-                            } else {
-                                if ($ascii) {
-                                    echo "\e[0;39;".$black."m \e[0m";
-                                } else {
-                                    echo ".";
-                                }
-                            }
-                            break;
-
-                        case $digit === 1:
-                        case $digit === 'white':
-                            if ($ascii) {
-                                echo "\e[0;39;".$white."m \e[0m";
-                            } else {
-                                echo "#";
-                            }
-                            break;
-
-                        case $digit === 2:
-                        case $digit === 'red':
-                            if ($ascii) {
-                                echo "\e[0;39;".$red."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === 'green':
-                            if ($ascii) {
-                                echo "\e[0;39;".$green."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === 'yellow':
-                            if ($ascii) {
-                                echo "\e[0;39;".$yellow."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === 'blue':
-                            if ($ascii) {
-                                echo "\e[0;39;".$blue."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === 'magenta':
-                            if ($ascii) {
-                                echo "\e[0;39;".$magenta."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === 'cyan':
-                            if ($ascii) {
-                                echo "\e[0;39;".$cyan."m \e[0m";
-                            } else {
-                                echo "@";
-                            }
-                            break;
-
-                        case $digit === '.':
-                        case $digit === '#':
-                        case $digit === '@':
-                        case $digit === 'O':
-                        case $digit === '<':
-                        case $digit === '>':
-                        case $digit === '^':
-                        case $digit === 'v':
+                        if ($exact) {
                             echo $digit;
-                            break;
 
-                        default:
-                            echo ' ';
-                            break;
+                        } else {
+                            switch (true) {
+                            case $digit === 0:
+                            case $digit === 'black':
+                                if ($digit === null) {
+                                    echo ' ';
+                                } else {
+                                    if ($ascii) {
+                                        echo "\e[0;39;".$black."m \e[0m";
+                                    } else {
+                                        echo ".";
+                                    }
+                                }
+                                break;
+
+                            case $digit === 1:
+                            case $digit === 'white':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$white."m \e[0m";
+                                } else {
+                                    echo "#";
+                                }
+                                break;
+
+                            case $digit === 2:
+                            case $digit === 'red':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$red."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === 'green':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$green."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === 'yellow':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$yellow."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === 'blue':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$blue."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === 'magenta':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$magenta."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === 'cyan':
+                                if ($ascii) {
+                                    echo "\e[0;39;".$cyan."m \e[0m";
+                                } else {
+                                    echo "@";
+                                }
+                                break;
+
+                            case $digit === '.':
+                            case $digit === '#':
+                            case $digit === '@':
+                            case $digit === 'O':
+                            case $digit === '<':
+                            case $digit === '>':
+                            case $digit === '^':
+                            case $digit === 'v':
+                                echo $digit;
+                                break;
+
+                            default:
+                                echo ' ';
+                                break;
+                            }
                         }
                     }
                 }
@@ -278,5 +288,74 @@ class Grid
         $this->set($g);
 
         return $sum;
+    }
+
+    function setGridFromMap($input, $start=null)
+    {
+        $line = 0;
+        $rows = 0;
+        $startX = null;
+        $startY = null;
+
+        $o = str_split($input);
+
+        foreach ($o as $key=>$value) {
+            switch (true) {
+            case $value != "\n":
+                if ($rows == 1) $line++;
+                break;
+
+            default:
+                $rows++;
+
+                break;
+            }
+        }
+
+        $line--;
+        if ($o == "\n") {
+            $rows++;
+        }
+
+        $x = 0;
+        $y = 0;
+
+        foreach ($o as $key=>$value) {
+            if ($value == $start) {
+                $startX = $x;
+                $startY = $y;
+            }
+
+            switch (true) {
+            case $value != "\n":
+                $this->append($x, $y, $value);
+                $x++;
+
+                break;
+
+            default:
+                $rows++;
+                $y++;
+                $x = 0;
+
+                break;
+            }
+        }
+
+        return [
+            'x' => $startX,
+            'y' => $startY,
+        ];
+    }
+
+    public function replace($search, $replace)
+    {
+        foreach ($this->coords as $y=>$v1) {
+            foreach ($v1 as $x=>$value) {
+                if ($search == $value) {
+                    $this->coords[$y][$x] = $replace;
+                }
+            }
+        }
     }
 }
