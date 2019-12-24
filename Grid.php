@@ -2,7 +2,31 @@
 
 class Grid
 {
+    public $x;
+    public $y;
+
     private $coords = [];
+
+    public function getFirstValue($y)
+    {
+        ksort($this->coords[$y]);
+
+        dump($this->coords[$y]);die();
+    }
+
+    public function getValues()
+    {
+        $values = [];
+
+        foreach ($this->coords as $y=>$v1) {
+            foreach ($v1 as $x=>$value) {
+                $key = $x.','.$y;
+                $values[$key] = $value;
+            }
+        }
+
+        return $values;
+    }
 
     public function append($x, $y, $value)
     {
@@ -74,10 +98,19 @@ class Grid
 
                 ksort($input[$y]);
             }
+
             ksort($input);
         }
 
         return $input;
+    }
+
+    public function init($hSize, $wSize, $default=null)
+    {
+        $grid = $this->build($hSize, $wSize, $default);
+        $this->set($grid);
+
+        return $this;
     }
 
     public function build($hSize, $wSize, $default=null)
@@ -138,7 +171,15 @@ class Grid
                         usleep($speed);
 
                         if ($exact) {
-                            echo $digit;
+                            if ($digit === 0) {
+                                echo ' ';
+
+                            } elseif (strlen($digit) == 1) {
+                                echo $digit;
+
+                            } else {
+                                echo ' ';
+                            }
 
                         } else {
                             switch (true) {
