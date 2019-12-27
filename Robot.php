@@ -4,6 +4,9 @@ class Robot
 {
     private $paths = [];
     private $blocks = [];
+    private $found = [];
+    private $warps = [];
+    private $levels = [];
     private $allowed;
     private $target;
     private $block;
@@ -20,13 +23,121 @@ class Robot
         $this->x = $startX;
         $this->y = $startY;
         $this->allowed = $allowed;
-        $this->target = $target;
-        $this->block = $block;
+
+        if (!is_array($target)) {
+            $this->target = [];
+        } else {
+            $this->target = $target;
+        }
+
         $this->type = $type;
         $this->startDirection = $startDirection;
     }
 
-    public function run($print=false, $markCurrent=true, $sleep=0)
+    public function getFound()
+    {
+        return $this->found;
+    }
+
+    public function setGrid($grid)
+    {
+        $this->grid = $grid;
+    }
+
+    public function setStart($x, $y)
+    {
+        $this->x = $x;
+        $this->y = $y;
+    }
+
+    public function reset()
+    {
+        foreach ($this->levels as $level) {
+            $n = new \StdClass();
+            $n->paths = [];
+            $n->spawns = [];
+            $n->blocks = [];
+            $n->found = [];
+            $n->allowed = $this->allowed;
+
+            $this->levels[$level] = $n;
+        }
+    }
+
+    public function getGrid()
+    {
+        return $this->grid;
+    }
+
+    public function setWarps($warps)
+    {
+        $this->warps = $warps;
+    }
+
+    public function setTargets($target, $level=0)
+    {
+        if (!is_array($target)) {
+            $this->levels[$level]->target = [$target];
+        } else {
+            $this->levels[$level]->target = $target;
+        }
+    }
+
+    public function print($spawns)
+    {
+        $levels = [];
+        foreach ($spawns as $spawn) {
+            $level = $spawn['level'];
+
+            if (isset($this->levels[$level]->grid)) {
+                $levels[$level] = $this->levels[$level]->grid->get();
+            }
+        }
+
+        krsort($levels);
+
+        foreach ($spawns as $s) {
+            $level = $s['level'];
+
+            if (isset($this->levels[$level]->grid)) {
+                $out = $this->levels[$level]->grid->getCoord($s['x'], $s['y']);
+
+                if (in_array($out, $this->levels[$level]->target) || in_array($out, $this->levels[$level]->allowed)) {
+                    $levels[$level][$s['y']][$s['x']] = '^';
+                }
+            }
+        }
+
+        foreach ($levels as $level=>$image) {
+            dump('level '.$level);
+
+            $this->grid->print($image, 1, 0, true, true);
+        }
+    }
+
+    private function buildLevel($level)
+    {
+        if (!isset($this->levels[$level]) || !isset($this->levels[$level]->grid)) {
+            $n = new \StdClass();
+            $n->paths = [];
+            $n->blocks = [];
+            $n->grid = $this->grid;
+            $n->warps = $this->warps;
+            $n->allowed = $this->allowed;
+
+            if ($level === 0) {
+                $n->target = $this->target;
+            } else {
+                $n->target = [];
+            }
+
+            $this->levels[$level] = $n;
+        }
+
+        return $this->levels[$level];
+    }
+
+    public function run($print=false, $markCurrent=true, $sleep=0, $returnFound=false)
     {
         $sleep = $sleep*1000;
         $spawns = [];
@@ -34,6 +145,7 @@ class Robot
         $spawn = [
             'x' => $this->x,
             'y' => $this->y,
+            'level' => 0,
             'prevX' => $this->x,
             'prevY' => $this->y,
             'steps' => 0,
@@ -43,17 +155,17 @@ class Robot
             'path' => [],
         ];
 
-        $spawns = $this->getSpawns($spawn, null);
+        $this->buildLevel(0);
 
-        if ($print) {
-            $this->grid->print();
-        }
+        $spawns = $this->getSpawns($spawn, null);
+        if ($print) $this->print($spawns);
 
         while (true) {
             $this->log('spawns '.count($spawns));
 
-            $g = $this->grid->get();
             foreach ($spawns as $spawnKey=>$spawn) {
+                $level = $spawn['level'];
+
                 $this->log('spawn at '.$spawn['x'].','.$spawn['y']);
 
                 $x = $spawn['x'];
@@ -61,46 +173,81 @@ class Robot
 
                 $spawn['steps']++;
 
-                $output = $this->grid->getCoord($spawn['x'], $spawn['y']);
+                $output = $this->levels[$level]->grid->getCoord($spawn['x'], $spawn['y']);
 
-                if (in_array($output, $this->allowed)) {
-                    $this->log('ok, move to '.$x.','.$y);
+                $foundTarget = false;
+                $hasWarp = false;
 
-                    if ($markCurrent) {
-                        $g[$y][$x] = 'blue';
+                if (in_array($output, $this->levels[$level]->target)) {
+                    $foundTarget = true;
+                }
+
+                foreach ($this->levels[$level]->target as $target) {
+                    if (isset($target['x']) && $x == $target['x'] && $y == $target['y']) {
+                        $foundTarget = true;
                     }
+                }
+
+                foreach ($this->warps as $warp) {
+                    if ($x == $warp['from']['x'] && $y == $warp['from']['y']) {
+                        $hasWarp = true;
+
+                        $this->log('warp from '.$x.','.$y.' to '.$warp['to']['x'].','.$warp['to']['y']);
+
+                        $x = $warp['to']['x'];
+                        $y = $warp['to']['y'];
+
+                        $spawn['x'] = $x;
+                        $spawn['y'] = $y;
+                        $spawn['steps']++;
+                        $spawn['level'] += $warp['level'];
+
+                        $spawn['path'][] = 'warp '.$warp['name'].', '.$warp['level'].', curr '.$spawn['level'];
+                        $this->buildLevel($spawn['level']);
+
+                        break;
+                    }
+                }
+
+                if (!$foundTarget && ($hasWarp || in_array($output, $this->levels[$level]->allowed))) {
+                    $this->log('ok, move to '.$x.','.$y);
 
                     $spawn['lastSuccessDirection'] = $spawn['direction'];
                     $spawn['path'][] = $spawn['direction'];
+
+                    if ($markCurrent) {
+                        $g[$y][$x] = '^';
+                    }
 
                     $s = $this->getSpawns($spawn, null);
                     foreach ($s as $ss) {
                         $spawns[] = $ss;
                     }
 
-                } elseif (in_array($output, $this->target)) {
+                } elseif ($foundTarget) {
                     $this->log('found target at '.$x.','.$y);
 
-                } elseif (in_array($output, $this->block)) {
-                    $this->log('block at '.$x.','.$y);
+                    if ($markCurrent) {
+                        $g[$y][$x] = '^';
+                    }
 
-                    $key = $x.','.$y;
-                    $this->blocks[$key] = true;
+                    $spawn['foundTarget'] = true;
+                    $spawn['target'] = $output;
 
-                    $spawn['switch'] = true;
+                    $this->found[] = [
+                        'value' => $output,
+                        'spawn' => $spawn,
+                    ];
 
-                    if ($this->type == 'to-block') {
-                        $s = $this->getSpawns($spawn);
-                        foreach ($s as $ss) {
-                            $spawns[] = $ss;
-                        }
+                    if ($returnFound) {
+                        return $spawn;
                     }
 
                 } else {
                     $this->log('border at '.$x.','.$y);
 
                     $key = $x.','.$y;
-                    $this->blocks[$key] = true;
+                    $this->levels[$level]->blocks[$key] = true;
 
                     $spawn['switch'] = true;
 
@@ -117,20 +264,14 @@ class Robot
                 unset($spawns[$spawnKey]);
             }
 
-            if ($print) {
-                $this->grid->print($g);
-            }
+            if ($print) $this->print($spawns);
 
             if (count($spawns) == 0) break;
 
             usleep($sleep);
-
-            if ($print) {
-                echo PHP_EOL;
-            }
         }
 
-        return $last;
+        return isset($last) ? $last : null;
     }
 
     private function newSpawn($parent, $opt)
@@ -139,15 +280,17 @@ class Robot
             'direction' => $opt['direction'],
             'switch' => false,
             'lastSuccessDirection' => $parent['lastSuccessDirection'],
+            'foundTarget' => false,
             'x' => $opt['x'],
             'y' => $opt['y'],
+            'level' => $parent['level'],
             'prevX' => $parent['prevX'],
             'prevY' => $parent['prevY'],
             'steps' => $parent['steps'],
             'path' => $parent['path'],
         ];
 
-        $this->paths[$opt['pathKey']] = true;
+        $this->levels[$parent['level']]->paths[$opt['pathKey']] = true;
 
         return $spawn;
     }
@@ -179,7 +322,7 @@ class Robot
                     throw new \Exception('not supported direction: '.$parent['direction']);
                 }
 
-                $options = $this->getOptions($parent['prevX'], $parent['prevY'], null, $blockDirection);
+                $options = $this->getOptions($parent['prevX'], $parent['prevY'], null, $blockDirection, $spawn['level']);
 
                 foreach ($options as $i=>$opt) {
                     $spawns[] = $this->newSpawn($parent, $opt);
@@ -192,7 +335,7 @@ class Robot
                 $parent['switch'] = false;
 
             } else {
-                $options = $this->getOptions($parent['x'], $parent['y'], $parent['direction']);
+                $options = $this->getOptions($parent['x'], $parent['y'], $parent['direction'], null, $spawn['level']);
 
                 foreach ($options as $i=>$opt) {
                     $s = $this->newSpawn($parent, $opt);
@@ -206,7 +349,7 @@ class Robot
             }
 
         } else {
-            $options = $this->getOptions($parent['x'], $parent['y']);
+            $options = $this->getOptions($parent['x'], $parent['y'], null, null, $parent['level']);
 
             foreach ($options as $i=>$opt) {
                 $spawns[] = $this->newSpawn($parent, $opt);
@@ -216,7 +359,7 @@ class Robot
         return $spawns;
     }
 
-    public function getOptions($x, $y, $onlyDirection=null, $blockDirection=null)
+    public function getOptions($x, $y, $onlyDirection=null, $blockDirection=null, $level=0)
     {
         $options = [];
 
@@ -261,7 +404,7 @@ class Robot
             $nkey = $nx.','.$ny;
 
             if ($this->type == 'to-block') {
-                if (!isset($this->blocks[$nkey])) {
+                if (!isset($this->levels[$level]->blocks[$nkey])) {
                     $options[] = [
                         'direction' => $r,
                         'x' => $nx,
@@ -271,7 +414,7 @@ class Robot
                 }
 
             } else {
-                if (!isset($this->paths[$nkey]) && !isset($this->blocks[$nkey])) {
+                if (!isset($this->levels[$level]->paths[$nkey]) && !isset($this->levels[$level]->blocks[$nkey])) {
                     $options[] = [
                         'direction' => $r,
                         'x' => $nx,

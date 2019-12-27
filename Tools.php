@@ -2,6 +2,44 @@
 
 class Tools
 {
+    public function printAscii($list)
+    {
+        $list = $this->fromAscii($list);
+        $msg = '';
+
+        foreach ($list as $l) {
+            $msg .= $l;
+        }
+
+        return $msg;
+    }
+
+    public function toAscii($msg, $appendNewLine=false)
+    {
+        $list = str_split($msg);
+        if ($appendNewLine) {
+            $list[] = PHP_EOL;
+        }
+
+        $res = [];
+
+        foreach ($list as $l) {
+            $res[] = ord($l);
+        }
+
+        return $res;
+    }
+
+    public function fromAscii($list)
+    {
+        $res = [];
+        foreach ($list as $l) {
+            $res[] = chr($l);
+        }
+
+        return $res;
+    }
+
     public function getDistance($x1, $y1, $x2, $y2)
     {
         return sqrt(pow($x2-$x1,2) + pow($y2-$y1,2));
