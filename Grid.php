@@ -7,6 +7,138 @@ class Grid
 
     private $coords = [];
 
+    public function getUp($x, $y)
+    {
+        if (isset($this->coords[$y-1]) && isset($this->coords[$y-1][$x])) {
+            return [
+                'coord' => [
+                    'x' => $x,
+                    'y' => $y-1,
+                ],
+                'value' => $this->coords[$y-1][$x],
+            ];
+        }
+
+        return null;
+    }
+
+    public function getDown($x, $y)
+    {
+        if (isset($this->coords[$y+1]) && isset($this->coords[$y+1][$x])) {
+            return [
+                'coord' => [
+                    'x' => $x,
+                    'y' => $y+1,
+                ],
+                'value' => $this->coords[$y+1][$x],
+            ];
+        }
+
+        return null;
+    }
+
+    public function getLeft($x, $y)
+    {
+        if (isset($this->coords[$y]) && isset($this->coords[$y][$x-1])) {
+            return [
+                'coord' => [
+                    'x' => $x-1,
+                    'y' => $y,
+                ],
+                'value' => $this->coords[$y][$x-1],
+            ];
+        }
+
+        return null;
+    }
+
+    public function getRight($x, $y)
+    {
+        if (isset($this->coords[$y]) && isset($this->coords[$y][$x+1])) {
+            return [
+                'coord' => [
+                    'x' => $x+1,
+                    'y' => $y,
+                ],
+                'value' => $this->coords[$y][$x+1],
+            ];
+        }
+
+        return null;
+    }
+
+    public function getAround($x, $y)
+    {
+        $fields = [];
+        $fields['up'] = $this->getUp($x, $y);
+        $fields['down'] = $this->getDown($x, $y);
+        $fields['left'] = $this->getLeft($x, $y);
+        $fields['right'] = $this->getRight($x, $y);
+
+        return $fields;
+    }
+
+    public function getAreaFields($name)
+    {
+        $values = $this->getFieldsByValue($name);
+        $res = [];
+
+        foreach ($values as $r) {
+            $fields = [];
+            $fields['up'] = $this->getUp($r['x'], $r['y']);
+            $fields['down'] = $this->getDown($r['x'], $r['y']);
+            $fields['left'] = $this->getLeft($r['x'], $r['y']);
+            $fields['right'] = $this->getRight($r['x'], $r['y']);
+
+            foreach ($fields as $key=>$field) {
+                if ($field['value'] == '.') {
+                    $res[$r['x'].','.$r['y']] = $field;
+                }
+            }
+        }
+
+        return $res;
+    }
+
+    public function getFieldsByValue($value)
+    {
+        $res = [];
+
+        $values = str_split($value);
+
+        foreach ($this->coords as $y=>$v1) {
+            foreach ($v1 as $x=>$v2) {
+                $fields = $this->getAround($x, $y);
+                $match = 0;
+
+                if ($v2 == $values[0]) {
+                    foreach ($fields as $field) {
+                        if ($field && $field['value'] == $values[1]) {
+                            $match++;
+                        }
+                    }
+                }
+
+                if ($v2 == $values[1]) {
+                    foreach ($fields as $field) {
+                        if ($field && $field['value'] == $values[0]) {
+                            $match++;
+                        }
+                    }
+                }
+
+                if ($match >= 1) {
+                    $res[] = [
+                        'x' => $x,
+                        'y' => $y,
+                    ];
+                }
+            }
+        }
+
+        return $res;
+    }
+
     public function getFirstValue($y)
     {
         ksort($this->coords[$y]);
@@ -398,5 +530,30 @@ class Grid
                 }
             }
         }
+    }
+
+    public function getMax()
+    {
+        $minX = null;
+        $minY = null;
+        $maxX = null;
+        $maxY = null;
+
+        foreach ($this->coords as $y=>$v1) {
+            if ($minY === null || $y < $minY) $minY = $y;
+            if ($maxY === null || $y > $maxY) $maxY = $y;
+
+            foreach ($v1 as $x=>$v2) {
+                if ($minX === null || $x < $minX) $minX = $x;
+                if ($maxX === null || $x > $maxX) $maxX = $x;
+            }
+        }
+
+        return [
+            'minX' => $minX,
+            'minY' => $minY,
+            'maxX' => $maxX,
+            'maxY' => $maxY,
+        ];
     }
 }
